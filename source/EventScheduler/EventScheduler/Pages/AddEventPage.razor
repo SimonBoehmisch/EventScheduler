@@ -1,0 +1,68 @@
+﻿
+@using EventScheduler.Common.Interfaces;
+@using Radzen
+@using Microsoft.AspNetCore.Components
+@using EventScheduler.Common.Models
+@inject DialogService DialogService
+
+<RadzenTemplateForm TItem="Event" Data="@model" Submit=@OnSubmit>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Title" />
+        </div>
+        <div class="col">
+            <RadzenTextBox @bind-Value="@model.Title" Name="Title" />
+            <RadzenRequiredValidator Text="Title is required" Component="Title" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Start" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker @bind-Value="@model.Start" Name="Start" ShowTime="true" />
+            <RadzenRequiredValidator Text="Start is required" Component="Start" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="End" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Name="End" @bind-Value="@model.End" ShowTime="true" />
+            <RadzenRequiredValidator Component="End" Text="End is required" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+@code {
+    @inject IGenericRepository<Event> eventRepository;
+
+
+    [Parameter]
+    public DateTime Start { get; set; }
+
+    [Parameter]
+    public DateTime End { get; set; }
+
+    Event model = new Event();
+
+    protected override void OnParametersSet()
+    {
+        model.Start = Start;
+        model.End = End;
+    }
+
+    async void OnSubmit(Event model)
+    {
+       await eventRepository.InsertAsync(model);
+       await eventRepository.SaveChangesAsync();
+
+       DialogService.Close(model);
+    }
+}

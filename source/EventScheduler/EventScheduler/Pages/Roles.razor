@@ -1,0 +1,151 @@
+﻿@page "/roles"
+@using EventScheduler.Common.Interfaces;
+@using EventScheduler.Common.Models;
+<PageTitle>Roles</PageTitle>
+
+<RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="my-4">
+    DataGrid InLine Editing
+</RadzenText>
+<RadzenText TextStyle="TextStyle.Body1" Class="my-4">
+    This page demonstrates how to configure the Razden Blazor DataGrid for inline editing.
+</RadzenText>
+
+<RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" Class="mt-2 mb-4" Text="Add New Order" Click="@InsertRow" Disabled=@(roleToInsert != null || roleToUpdate != null) />
+<RadzenDataGrid @ref="rolesGrid" EditMode="DataGridEditMode.Single"
+                Data="@roles" TItem="Role" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow">
+    <Columns>
+        @*<RadzenDataGridColumn TItem="RoleRequirement" Property="RoleRequirement.Id" Title="Customer ID" />*@
+        <RadzenDataGridColumn TItem="Role" Property="Role.Name" Title="Name">
+            <EditTemplate Context="role">
+                <RadzenTextBox @bind-Value="@role.Name"/>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Role" Context="role" Title="Actions">
+            <Template Context="role">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(role))" @onclick:stopPropagation="true">
+                </RadzenButton>
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(role))" @onclick:stopPropagation="true">
+                </RadzenButton>
+            </Template>
+            <EditTemplate Context="role">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(role))">
+                </RadzenButton>
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@((args) => CancelEdit(role))">
+                </RadzenButton>
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(role))">
+                </RadzenButton>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    @inject IRoleRepository roleRepository;
+
+    IList<Role> roles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        roles = await roleRepository.GetAsync(null, null);
+    }
+
+    Role roleToInsert;
+    Role roleToUpdate;
+
+    RadzenDataGrid<Role> rolesGrid;
+
+    private async Task CreateRole(Role role)
+
+    {
+        await roleRepository.InsertAsync(role);
+        await roleRepository.SaveChangesAsync();
+
+        roles = await roleRepository.GetAsync(null, null);
+    }
+
+    void Reset()
+    {
+        roleToInsert = null;
+        roleToUpdate = null;
+    }
+
+    async Task EditRow(Role role)
+    {
+        roleToUpdate = role;
+        await rolesGrid.EditRow(role);
+    }
+
+    async Task OnUpdateRow(Role role)
+    {
+        if (role == roleToInsert)
+        {
+            roleToInsert = null;
+        }
+
+        roleToUpdate = null;
+
+        roleRepository.Update(role);
+        await roleRepository.SaveChangesAsync();
+
+    }
+
+    async Task SaveRow(Role role)
+    {
+        await rolesGrid.UpdateRow(role);
+    }
+
+    void CancelEdit(Role role)
+    {
+        if (role == roleToInsert)
+        {
+            roleToInsert = null;
+        }
+
+        roleToUpdate = null;
+
+        rolesGrid.CancelEditRow(role);
+
+    }
+
+    async Task DeleteRow(Role role)
+    {
+        if (role == roleToInsert)
+        {
+            roleToInsert = null;
+        }
+
+        if (role == roleToUpdate)
+        {
+            roleToUpdate = null;
+        }
+
+        if (roles.Any(r => r.Id == role.Id))
+        {
+            roleRepository.Delete(role);
+            await roleRepository.SaveChangesAsync();
+            roles.Remove(role);
+            await rolesGrid.Reload();
+        }
+        else
+        {
+            rolesGrid.CancelEditRow(role);
+            await rolesGrid.Reload();
+        }
+    }
+
+    async Task InsertRow()
+    {
+        roleToInsert = new Role();
+        await rolesGrid.InsertRow(roleToInsert);
+    }
+
+    async Task OnCreateRow(Role role)
+    {
+        await roleRepository.InsertAsync(role);
+        await roleRepository.SaveChangesAsync();
+
+        roleToInsert = null;
+    }
+
+}
